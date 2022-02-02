@@ -14,23 +14,24 @@ def shit_defiler(dd):
 
 
 def bullshitifier(deg, mint, sec):
-    return ((deg, 1), (mint, 1), (sec * 1000000, 1000000))
+    return ((int(deg), 1), (int(mint), 1), (int(sec * 1000000), 1000000))
 
 
-with Image.open("img.jpg") as pidor_in_question:
-    exif_dict = piexif.load(pidor_in_question.info['exif'])
-    # print(exif_dict)
-    lat = exif_dict["GPS"][piexif.GPSIFD.GPSLatitude]
-    long = exif_dict["GPS"][piexif.GPSIFD.GPSLongitude]
-    print(exif_dict["Exif"].get(piexif.ImageIFD.Model))
-    print(lat)
-    print(long)
-    pringle = lat[0][0] + (lat[1][0] / 60) + ((lat[2][0] / lat[2][1]) / 3600)
-    print(pringle)
+def testifier():
+    with Image.open("img.jpg") as pidor_in_question:
+        exif_dict = piexif.load(pidor_in_question.info['exif'])
+        # print(exif_dict)
+        lat = exif_dict["GPS"][piexif.GPSIFD.GPSLatitude]
+        long = exif_dict["GPS"][piexif.GPSIFD.GPSLongitude]
+        print(exif_dict["Exif"].get(piexif.ImageIFD.Model))
+        print(lat)
+        print(long)
+        pringle = lat[0][0] + (lat[1][0] / 60) + ((lat[2][0] / lat[2][1]) / 3600)
+        print(pringle)
 
-a = 59.9303732
-[d, m, s] = shit_defiler(a)
-print(d, m, int(s * 1000000))
+    a = 59.9303732
+    [d, m, s] = shit_defiler(a)
+    print(d, m, int(s * 1000000))
 
 
 class Exifier:
@@ -60,9 +61,11 @@ class Exifier:
 
         for filename in filenames:
             with Image.open(self.directory + filename) as pidor_in_question:
+                print(f'Now working with {filename}')
+                pidor_in_question.show()
                 exif_dict = piexif.load(pidor_in_question.info['exif'])
 
-                date_input = input(f'Enter the date of capture. Previous is {self.capture_date}: ')
+                date_input = input(f'Enter the date of capture (split with :). Previous is {self.capture_date}: ')
 
                 if date_input == 'no':
                     date_to_insert = None
@@ -89,14 +92,39 @@ class Exifier:
                 elif location_input == 'pr':
                     location_to_insert = self.location
                 else:
-                    latitude, longitude = location_to_insert.split(',')
+                    latitude, longitude = location_input.split(', ')
 
-                    deg, mint, sec = shit_defiler(latitude)
+                    deg, mint, sec = shit_defiler(float(latitude))
                     converted_lat = bullshitifier(deg, mint, sec)
 
-                    deg, mint, sec = shit_defiler(longitude)
+                    deg, mint, sec = shit_defiler(float(longitude))
                     converted_long = bullshitifier(deg, mint, sec)
                     location_to_insert = (converted_lat, converted_long)
                     self.location = location_to_insert
 
+                if self.camera_vendor:
+                    exif_dict['0th'][271] = bytes(self.camera_vendor, 'UTF-8')
 
+                if self.camera:
+                    exif_dict['0th'][272] = bytes(self.camera, 'UTF-8')
+
+                if date_to_insert and time_to_insert:
+                    exif_dict['0th'][306] = bytes(f"{date_to_insert} {time_to_insert}", "UTF-8")
+
+                if location_to_insert:
+                    exif_dict['GPS'][piexif.GPSIFD.GPSLatitude] = location_to_insert[0]
+                    exif_dict['GPS'][piexif.GPSIFD.GPSLongitude] = location_to_insert[1]
+
+                print(location_to_insert)
+
+                exif_bytes = piexif.dump(exif_dict)
+
+                pidor_in_question.save(filename, "png", exif=exif_bytes)
+
+    def __init__(self):
+        self.set_directory()
+        self.exify()
+
+
+if __name__ == '__main__':
+    Exifier()
