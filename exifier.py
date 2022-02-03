@@ -60,6 +60,8 @@ class Exifier:
             self.camera = camera_input
 
         for filename in filenames:
+            if not filename.endswith('jpg'):
+                continue
             with Image.open(self.directory + filename) as pidor_in_question:
                 print(f'Now working with {filename}')
                 pidor_in_question.show()
@@ -69,8 +71,12 @@ class Exifier:
 
                 if date_input == 'no':
                     date_to_insert = None
+                    print(f'Not changing the datetime')
                 elif date_input == 'pr':
                     date_to_insert = self.capture_date
+                    print(f'Keeping the previous date: {date_to_insert}')
+                elif date_input == 'cont':
+                    continue
                 else:
                     date_to_insert = date_input
                     self.capture_date = date_to_insert
@@ -79,8 +85,10 @@ class Exifier:
 
                 if time_input == 'no':
                     time_to_insert = None
-                elif date_input == 'pr':
+                    print('Not changing the datetime')
+                elif time_input == 'pr':
                     time_to_insert = self.capture_time
+                    print(f'Keeping the previous time: {time_to_insert}')
                 else:
                     time_to_insert = time_input
                     self.capture_time = time_to_insert
@@ -89,8 +97,10 @@ class Exifier:
 
                 if location_input == 'no':
                     location_to_insert = None
+                    print('Not changing the location')
                 elif location_input == 'pr':
                     location_to_insert = self.location
+                    print('Keeping the previous location')
                 else:
                     latitude, longitude = location_input.split(', ')
 
@@ -110,16 +120,21 @@ class Exifier:
 
                 if date_to_insert and time_to_insert:
                     exif_dict['0th'][306] = bytes(f"{date_to_insert} {time_to_insert}", "UTF-8")
+                    exif_dict['Exif'][piexif.ExifIFD.DateTimeOriginal] = bytes(f"{date_to_insert} {time_to_insert}",
+                                                                               "UTF-8")
 
                 if location_to_insert:
+                    exif_dict['GPS'][piexif.GPSIFD.GPSLatitudeRef] = b'N'
                     exif_dict['GPS'][piexif.GPSIFD.GPSLatitude] = location_to_insert[0]
+                    exif_dict['GPS'][piexif.GPSIFD.GPSLongitudeRef] = b'E'
                     exif_dict['GPS'][piexif.GPSIFD.GPSLongitude] = location_to_insert[1]
 
                 print(location_to_insert)
 
                 exif_bytes = piexif.dump(exif_dict)
 
-                pidor_in_question.save(filename, "png", exif=exif_bytes)
+                # pidor_in_question.save(filename, "png", exif=exif_bytes)
+                piexif.insert(exif_bytes, self.directory + filename)
 
     def __init__(self):
         self.set_directory()
